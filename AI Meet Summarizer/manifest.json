@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "AI Meet Summariser",
+  "version": "1.0",
+  "description": "Real-time Google Meet transcription and AI-powered meeting summaries, Q&As, and action items.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://meet.google.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "host_permissions": [
+    "*://meet.google.com/*"
+  ]
+}

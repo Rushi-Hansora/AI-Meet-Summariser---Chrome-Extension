@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>AI Meet Summariser</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: rgba(22, 28, 45, 0.65);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-primary: #f3f4f6;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+
+      --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      --primary-glow: rgba(99, 102, 241, 0.35);
+
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.25);
+
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.35);
+
+      --warning: #f59e0b;
+      --accent: #06b6d4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      width: 580px;
+      min-height: 480px;
+      overflow-x: hidden;
+      padding: 18px;
+      position: relative;
+    }
+
+    /* Glow decoration */
+    body::before {
+      content: "";
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+      top: -30px;
+      right: -30px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: "";
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+      bottom: -30px;
+      left: -30px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app-container {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Header styling */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .logo-section {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      background: linear-gradient(to right, #ffffff, #d8b4fe);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .settings-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.03);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .settings-link:hover {
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Alert indicators */
+    .alert-bar {
+      display: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 500;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .alert-warning {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: #fcd34d;
+    }
+
+    .alert-warning a {
+      color: #fbbf24;
+      text-decoration: underline;
+      font-weight: 600;
+    }
+
+    .alert-danger {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #fca5a5;
+    }
+
+    /* Control Box */
+    .control-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .meeting-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .meet-name {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 320px;
+      color: var(--text-primary);
+    }
+
+    .status-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+    }
+
+    .status-active {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--success);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .status-capturing {
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .recording-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--danger);
+      box-shadow: 0 0 8px var(--danger);
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.9);
+        opacity: 0.6;
+      }
+
+      50% {
+        transform: scale(1.15);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(0.9);
+        opacity: 0.6;
+      }
+    }
+
+    .buttons-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      font-family: 'Outfit', sans-serif;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: var(--primary-gradient);
+      color: white;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 6px 16px var(--primary-glow);
+      filter: brightness(1.1);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+      box-shadow: 0 4px 12px var(--danger-glow);
+    }
+
+    .btn-danger:hover {
+      box-shadow: 0 6px 16px var(--danger-glow);
+      filter: brightness(1.1);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-icon-pulse {
+      font-size: 14px;
+    }
+
+    /* Tabs system */
+    .tabs-nav {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 13px;
+      padding: 8px 12px 10px 12px;
+      border-radius: 0;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .tab-btn.active {
+      color: #a78bfa;
+      font-weight: 600;
+    }
+
+    .tab-btn.active::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--primary-gradient);
+      box-shadow: 0 0 6px #7c3aed;
+    }
+
+    /* Tabs content */
+    .tabs-content {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      backdrop-filter: blur(12px);
+      min-height: 220px;
+      max-height: 320px;
+      overflow-y: auto;
+      padding: 16px;
+      position: relative;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Transcript styles */
+    .transcript-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .transcript-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .speaker-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .speaker-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: #a78bfa;
+    }
+
+    .speaker-time {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .speaker-text {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+    }
+
+    /* Live text item */
+    .live-item {
+      border-left: 2px solid var(--accent);
+      padding-left: 8px;
+      margin-top: 6px;
+    }
+
+    .live-item .speaker-name {
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .live-pulse {
+      width: 6px;
+      height: 6px;
+      background-color: var(--accent);
+      border-radius: 50%;
+      animation: pulse 1s infinite;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 180px;
+      color: var(--text-secondary);
+      text-align: center;
+      padding: 20px;
+    }
+
+    .empty-icon {
+      font-size: 32px;
+      opacity: 0.5;
+    }
+
+    /* Markdown report styles */
+    .report-text {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+    }
+
+    .report-text h3 {
+      color: #a78bfa;
+      font-size: 14px;
+      margin: 12px 0 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 2px;
+    }
+
+    .report-text ul,
+    .report-text ol {
+      padding-left: 18px;
+      margin: 8px 0;
+    }
+
+    .report-text li {
+      margin-bottom: 6px;
+    }
+
+    /* Footer box for copy / download */
+    .footer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .left-footer {
+      display: flex;
+      gap: 8px;
+    }
+
+    .right-footer {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Scrollbar styling */
+    .tabs-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .tabs-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .tabs-content::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+
+    .tabs-content::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .info-notice {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header>
+      <div class="logo-section">
+        <div class="logo-icon">🎙️</div>
+        <h1>AI Meet Summariser</h1>
+      </div>
+      <a href="#" id="open-settings" class="settings-link">⚙️ API Key</a>
+    </header>
+
+    <!-- Alert Bars -->
+    <div id="api-key-alert" class="alert-bar alert-warning">
+      Gemini API key is not set. Please <a href="#" id="configure-key">configure your API key</a> to enable
+      summarization.
+    </div>
+    <div id="not-meet-alert" class="alert-bar alert-danger">
+      Please open this extension on a <a href="https://meet.google.com" target="_blank">Google Meet</a> page to start
+      capturing.
+    </div>
+    <div id="captions-alert" class="alert-bar alert-warning">
+      ⚠️ Google Meet captions are turned OFF. Please click the **CC** button in the call controls to start transcribing!
+    </div>
+
+    <!-- Controls -->
+    <div class="control-box">
+      <div class="meeting-info">
+        <div id="meet-title" class="meet-name">Not in a Google Meet</div>
+        <div id="capture-status" class="status-pill">
+          <div id="status-dot"></div>
+          <span id="status-text">Inactive</span>
+        </div>
+      </div>
+      <div class="buttons-row">
+        <button id="toggle-capture-btn" class="btn-primary" style="flex: 2;" disabled>
+          <span>▶</span> Start Capturing
+        </button>
+        <button id="clear-btn" class="btn-secondary" style="flex: 1;" disabled>
+          🗑️ Clear
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="tabs-nav">
+      <button class="tab-btn active" data-tab="tab-transcript">Transcript</button>
+      <button class="tab-btn" data-tab="tab-summary" id="tab-summary-btn">Summary</button>
+      <button class="tab-btn" data-tab="tab-qa" id="tab-qa-btn">Q&A</button>
+      <button class="tab-btn" data-tab="tab-tasks" id="tab-tasks-btn">Tasks</button>
+    </div>
+
+    <!-- Tabs Contents -->
+    <div class="tabs-content" id="tabs-container">
+      <!-- Live Transcript -->
+      <div id="tab-transcript" class="tab-panel active">
+        <div id="transcript-container" class="transcript-list">
+          <div class="empty-state">
+            <div class="empty-icon">📝</div>
+            <p>No transcript recorded yet.</p>
+            <p style="font-size: 11px; opacity: 0.8;">Start capturing during a Google Meet call with captions turned on.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div id="tab-summary" class="tab-panel">
+        <div id="summary-container" class="report-text">
+          <div class="empty-state">
+            <div class="empty-icon">📊</div>
+            <p>No summary generated.</p>
+            <p style="font-size: 11px; opacity: 0.8;">Click 'Generate AI Reports' below to summarize the meeting.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q&A -->
+      <div id="tab-qa" class="tab-panel">
+        <div id="qa-container" class="report-text">
+          <div class="empty-state">
+            <div class="empty-icon">❓</div>
+            <p>No Q&A pairs generated.</p>
+            <p style="font-size: 11px; opacity: 0.8;">Click 'Generate AI Reports' below to extract questions and
+              answers.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasks -->
+      <div id="tab-tasks" class="tab-panel">
+        <div id="tasks-container" class="report-text">
+          <div class="empty-state">
+            <div class="empty-icon">✅</div>
+            <p>No action items extracted.</p>
+            <p style="font-size: 11px; opacity: 0.8;">Click 'Generate AI Reports' below to find tasks and action items.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="footer-actions">
+      <div class="left-footer">
+        <button id="generate-reports-btn" class="btn-primary" disabled>
+          ✨ Generate AI Reports
+        </button>
+      </div>
+      <div class="right-footer">
+        <button id="copy-btn" class="btn-secondary" title="Copy Current Tab Content" disabled>
+          📋 Copy
+        </button>
+        <button id="download-btn" class="btn-secondary" title="Download Full Markdown Report" disabled>
+          💾 Download
+        </button>
+      </div>
+    </div>
+
+    <div class="info-notice">
+      Note: Summarization requires an active internet connection and Gemini API Key.
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>

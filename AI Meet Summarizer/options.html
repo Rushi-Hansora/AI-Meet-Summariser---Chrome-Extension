@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>AI Meet Summariser Settings</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg-color: #0b0f19;
+        --card-bg: rgba(22, 28, 45, 0.65);
+        --border-color: rgba(255, 255, 255, 0.08);
+        --text-primary: #f3f4f6;
+        --text-secondary: #9ca3af;
+        
+        --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        --primary-glow: rgba(99, 102, 241, 0.35);
+        
+        --success: #10b981;
+      }
+
+      body {
+        font-family: 'Outfit', sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        padding: 40px 20px;
+        max-width: 500px;
+        margin: 0 auto;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      /* Glow background decoration */
+      body::before {
+        content: "";
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, rgba(0,0,0,0) 75%);
+        top: -50px;
+        left: 50%;
+        transform: translateX(-50%);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .container {
+        position: relative;
+        z-index: 1;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 24px;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      }
+
+      h1 {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        background: linear-gradient(to right, #ffffff, #d8b4fe);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .description {
+        font-size: 14px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        margin-bottom: 24px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+
+      label {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+
+      select, input[type="text"] {
+        font-family: 'Outfit', sans-serif;
+        width: 100%;
+        padding: 10px 14px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-size: 14px;
+        transition: all 0.2s ease;
+      }
+
+      select option {
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+      }
+
+      select:focus, input[type="text"]:focus {
+        outline: none;
+        border-color: #a78bfa;
+        box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.15);
+      }
+
+      .help-link {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .help-link a {
+        color: #a78bfa;
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .help-link a:hover {
+        text-decoration: underline;
+      }
+
+      button {
+        font-family: 'Outfit', sans-serif;
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+        border: none;
+        background: var(--primary-gradient);
+        color: white;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px var(--primary-glow);
+      }
+
+      button:hover {
+        filter: brightness(1.1);
+        box-shadow: 0 6px 16px var(--primary-glow);
+      }
+
+      button:active {
+        transform: scale(0.98);
+      }
+
+      .success-message {
+        display: none;
+        color: var(--success);
+        font-size: 13px;
+        font-weight: 500;
+        margin-top: 12px;
+        text-align: center;
+        animation: fadeIn 0.3s ease;
+      }
+
+      .provider-section {
+        display: none;
+        border-top: 1px solid var(--border-color);
+        padding-top: 15px;
+        margin-top: 15px;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎙️ AI Meet Summariser Settings</h1>
+      <p class="description">
+        Configure the extension settings to enable AI-powered summaries, Q&A extractions, and task assignments for Google Meet calls.
+      </p>
+
+      <div class="form-group">
+        <label for="ai-provider">Select AI Provider:</label>
+        <select id="ai-provider">
+          <option value="gemini">Google Gemini</option>
+          <option value="openai">OpenAI (ChatGPT)</option>
+          <option value="huggingface">Hugging Face</option>
+        </select>
+      </div>
+
+      <!-- Gemini Config -->
+      <div id="gemini-section" class="provider-section" style="display: block;">
+        <div class="form-group">
+          <label for="gemini-key">Gemini API Key:</label>
+          <input type="text" id="gemini-key" placeholder="Enter your Gemini API key" />
+          <span class="help-link">
+            Get an API key from 
+            <a href="https://aistudio.google.com/" target="_blank">Google AI Studio</a>.
+          </span>
+        </div>
+        <div class="form-group">
+          <label for="gemini-model">Gemini Model:</label>
+          <select id="gemini-model">
+            <option value="gemini-1.5-flash">gemini-1.5-flash (Standard Stable)</option>
+            <option value="gemini-3.5-flash">gemini-3.5-flash (Latest Flash)</option>
+            <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (Cost-Efficient)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- OpenAI Config -->
+      <div id="openai-section" class="provider-section">
+        <div class="form-group">
+          <label for="openai-key">OpenAI API Key:</label>
+          <input type="text" id="openai-key" placeholder="sk-..." />
+          <span class="help-link">
+            Get an API key from 
+            <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a>.
+          </span>
+        </div>
+        <div class="form-group">
+          <label for="openai-model">Select OpenAI Model:</label>
+          <select id="openai-model">
+            <option value="gpt-4o-mini">gpt-4o-mini (Recommended)</option>
+            <option value="gpt-4o">gpt-4o (High Quality)</option>
+            <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Hugging Face Config -->
+      <div id="huggingface-section" class="provider-section">
+        <div class="form-group">
+          <label for="hf-key">Hugging Face API Token:</label>
+          <input type="text" id="hf-key" placeholder="hf_..." />
+          <span class="help-link">
+            Get an API token from 
+            <a href="https://huggingface.co/settings/tokens" target="_blank">Hugging Face Settings</a>.
+          </span>
+        </div>
+        <div class="form-group">
+          <label for="hf-model">Hugging Face Model Tag:</label>
+          <input type="text" id="hf-model" placeholder="meta-llama/Meta-Llama-3-8B-Instruct" value="meta-llama/Meta-Llama-3-8B-Instruct" />
+          <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
+            Specify any instruction model on Hugging Face (e.g., meta-llama/Meta-Llama-3-8B-Instruct, mistralai/Mistral-7B-Instruct-v0.2).
+          </p>
+        </div>
+      </div>
+
+      <button id="save-button">Save Settings</button>
+      <div id="success-message" class="success-message">
+        ✓ Settings saved successfully!
+      </div>
+    </div>
+
+    <script src="options.js"></script>
+  </body>
+</html>
