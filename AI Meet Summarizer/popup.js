@@ -43,24 +43,51 @@ document.addEventListener("DOMContentLoaded", async () => {
     "openaiApiKey",
     "openaiModel",
     "huggingfaceApiKey",
-    "huggingfaceModel"
-  ], (result) => {
+    "huggingfaceModel",
+    "localServerUrl",
+    "localModel"
+  ], async (result) => {
     const provider = result.aiProvider || "gemini";
-    let activeKey = "";
 
-    if (provider === "gemini") activeKey = result.geminiApiKey;
-    else if (provider === "openai") activeKey = result.openaiApiKey;
-    else if (provider === "huggingface") activeKey = result.huggingfaceApiKey;
-
-    if (activeKey) {
-      apiKeyAlert.style.display = "none";
-      generateReportsBtn.removeAttribute("disabled");
+    if (provider === "local") {
+      const serverUrl = (result.localServerUrl || "http://localhost:8000").replace(/\/+$/, "");
+      try {
+        const res = await fetch(`${serverUrl}/health`, { method: "GET" });
+        if (res.ok) {
+          const healthData = await res.json();
+          apiKeyAlert.style.display = "none";
+          generateReportsBtn.removeAttribute("disabled");
+          const footerNotice = document.getElementById("info-notice");
+          if (footerNotice) {
+            footerNotice.textContent = `Offline Local AI Active (${healthData.model || "qwen3:1.7b"}) • 100% Private`;
+          }
+        } else {
+          apiKeyAlert.style.display = "block";
+          apiKeyAlert.innerHTML = `⚠️ Local AI backend responded with HTTP ${res.status}. Ensure Ollama is running.`;
+        }
+      } catch (err) {
+        apiKeyAlert.style.display = "block";
+        apiKeyAlert.innerHTML = `⚠️ Local AI backend is not reachable at <code>${serverUrl}</code>. Please start FastAPI (<code>uvicorn main:app --reload</code>) and Ollama. <a href="#" id="configure-key-inner">Settings</a>`;
+        const configLink = document.getElementById("configure-key-inner");
+        if (configLink) configLink.addEventListener("click", openOptionsPage);
+        generateReportsBtn.setAttribute("disabled", "true");
+      }
     } else {
-      apiKeyAlert.style.display = "block";
-      apiKeyAlert.innerHTML = `API key not found for selected provider (${provider.toUpperCase()}). Please <a href="#" id="configure-key-inner">configure your API key</a> to enable summaries.`;
-      const configLink = document.getElementById("configure-key-inner");
-      if (configLink) configLink.addEventListener("click", openOptionsPage);
-      generateReportsBtn.setAttribute("disabled", "true");
+      let activeKey = "";
+      if (provider === "gemini") activeKey = result.geminiApiKey;
+      else if (provider === "openai") activeKey = result.openaiApiKey;
+      else if (provider === "huggingface") activeKey = result.huggingfaceApiKey;
+
+      if (activeKey) {
+        apiKeyAlert.style.display = "none";
+        generateReportsBtn.removeAttribute("disabled");
+      } else {
+        apiKeyAlert.style.display = "block";
+        apiKeyAlert.innerHTML = `API key not found for selected provider (${provider.toUpperCase()}). Please <a href="#" id="configure-key-inner">configure your API key</a> to enable summaries.`;
+        const configLink = document.getElementById("configure-key-inner");
+        if (configLink) configLink.addEventListener("click", openOptionsPage);
+        generateReportsBtn.setAttribute("disabled", "true");
+      }
     }
   });
 
@@ -340,6 +367,54 @@ function pollTranscript() {
   );
 }
 
+// Parse the sections using regex and fallback to markdown headers
+function parseReportSections(combinedText) {
+  if (!combinedText) {
+    return {
+      summary: "No summary generated.",
+      qa: "No questions detected.",
+      tasks: "No action items detected."
+    };
+  }
+
+  // 1. Try exact bracket tags first: [SUMMARY_START] ... [SUMMARY_END]
+  const summaryMatch = combinedText.match(/\[SUMMARY_START\]([\s\S]*?)\[SUMMARY_END\]/i);
+  const qaMatch = combinedText.match(/\[QA_START\]([\s\S]*?)\[QA_END\]/i);
+  const tasksMatch = combinedText.match(/\[TASKS_START\]([\s\S]*?)\[TASKS_END\]/i);
+
+  let summary = summaryMatch ? summaryMatch[1].trim() : null;
+  let qa = qaMatch ? qaMatch[1].trim() : null;
+  let tasks = tasksMatch ? tasksMatch[1].trim() : null;
+
+  // 2. Fallback to common section headings (e.g., from local Qwen3 model)
+  if (!summary || !qa || !tasks) {
+    const summaryHeader = combinedText.match(/(?:^|\n)(?:#+\s*)?(?:SUMMARY|Executive Summary)[:\s]*([\s\S]*?)(?=(?:^|\n)(?:#+\s*)?(?:KEY_POINTS|Key Points|Discussion Topics|QA|Q&A|ACTION_ITEMS|TASKS|Tasks)[:\s]|$)/i);
+    const keyPointsHeader = combinedText.match(/(?:^|\n)(?:#+\s*)?(?:KEY_POINTS|Key Points|Discussion Topics)[:\s]*([\s\S]*?)(?=(?:^|\n)(?:#+\s*)?(?:QA|Q&A|ACTION_ITEMS|TASKS|Tasks)[:\s]|$)/i);
+    const qaHeader = combinedText.match(/(?:^|\n)(?:#+\s*)?(?:QA|Q&A|Questions & Answers|Questions Asked)[:\s]*([\s\S]*?)(?=(?:^|\n)(?:#+\s*)?(?:ACTION_ITEMS|Action Items|TASKS|Tasks|To-Do)[:\s]|$)/i);
+    const tasksHeader = combinedText.match(/(?:^|\n)(?:#+\s*)?(?:ACTION_ITEMS|Action Items|TASKS|Tasks|To-Do Items)[:\s]*([\s\S]*?)$/i);
+
+    if (!summary && summaryHeader) {
+      summary = summaryHeader[1].trim();
+      if (keyPointsHeader) {
+        summary += "\n\n### Key Discussion Points\n" + keyPointsHeader[1].trim();
+      }
+    }
+    if (!qa && qaHeader) {
+      qa = qaHeader[1].trim();
+    }
+    if (!tasks && tasksHeader) {
+      tasks = tasksHeader[1].trim();
+    }
+  }
+
+  // 3. Fallback if still unparsed
+  return {
+    summary: summary || combinedText,
+    qa: qa || "No questions or answers detected.",
+    tasks: tasks || "No action items or tasks detected."
+  };
+}
+
 // Generate Summaries via AI
 async function handleGenerateReports() {
   chrome.storage.sync.get([
@@ -349,11 +424,14 @@ async function handleGenerateReports() {
     "openaiApiKey",
     "openaiModel",
     "huggingfaceApiKey",
-    "huggingfaceModel"
+    "huggingfaceModel",
+    "localServerUrl",
+    "localModel"
   ], async (result) => {
     const provider = result.aiProvider || "gemini";
     let activeKey = "";
     let activeModel = "";
+    const localUrl = (result.localServerUrl || "http://localhost:8000").replace(/\/+$/, "");
 
     if (provider === "gemini") {
       activeKey = result.geminiApiKey;
@@ -364,10 +442,12 @@ async function handleGenerateReports() {
     } else if (provider === "huggingface") {
       activeKey = result.huggingfaceApiKey;
       activeModel = result.huggingfaceModel || "meta-llama/Meta-Llama-3-8B-Instruct";
+    } else if (provider === "local") {
+      activeModel = result.localModel || "qwen3:1.7b";
     }
 
-    if (!activeKey) {
-      alert(`Please set your API key/token for ${provider.toUpperCase()} in the extension options.`);
+    if (provider !== "local" && !activeKey) {
+      alert(`Please set your API key/token for ${provider.toUpperCase()} in the extension settings.`);
       openOptionsPage();
       return;
     }
@@ -379,9 +459,10 @@ async function handleGenerateReports() {
 
     // Set loading states
     generateReportsBtn.setAttribute("disabled", "true");
-    generateReportsBtn.innerHTML = "✨ Generating reports...";
+    const providerLabel = provider === "local" ? `Local AI (${activeModel})` : provider.toUpperCase();
+    generateReportsBtn.innerHTML = `✨ Generating (${providerLabel})...`;
 
-    summaryContainer.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:180px;"><div style="border: 3px solid rgba(255,255,255,0.05); border-top: 3px solid #7c3aed; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite;"></div></div>';
+    summaryContainer.innerHTML = '<div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:180px; gap:12px;"><div style="border: 3px solid rgba(255,255,255,0.05); border-top: 3px solid #7c3aed; border-radius: 50%; width: 28px; height: 28px; animation: spin 1s linear infinite;"></div><span style="font-size:12px; color:#9ca3af;">AI is analyzing your meeting transcript...</span></div>';
     qaContainer.innerHTML = summaryContainer.innerHTML;
     tasksContainer.innerHTML = summaryContainer.innerHTML;
 
@@ -399,7 +480,7 @@ async function handleGenerateReports() {
       .join("\n");
 
     try {
-      // Generate all reports in a single bundled API request
+      // Bundled prompt that works universally with Cloud and Local models
       const bundledPrompt = `Analyze the following meeting transcript and provide three distinct sections: SUMMARY, Q&A, and TASKS. Use the exact tags [SUMMARY_START], [SUMMARY_END], [QA_START], [QA_END], [TASKS_START], and [TASKS_END] to separate these sections. Do not use codeblocks or surrounding markdown backticks.
 
 Here are the guidelines for each section:
@@ -410,35 +491,19 @@ Here are the guidelines for each section:
 Transcript:
 ${transcriptText}`;
 
-      const combinedText = await callAIProvider(bundledPrompt, provider, activeKey, activeModel);
+      const combinedText = await callAIProvider(bundledPrompt, provider, activeKey, activeModel, localUrl, transcriptText);
 
-      // Parse the sections using regex
-      const summaryMatch = combinedText.match(/\[SUMMARY_START\]([\s\S]*?)\[SUMMARY_END\]/);
-      const qaMatch = combinedText.match(/\[QA_START\]([\s\S]*?)\[QA_END\]/);
-      const tasksMatch = combinedText.match(/\[TASKS_START\]([\s\S]*?)\[TASKS_END\]/);
+      // Parse the sections using tags or headers
+      const parsed = parseReportSections(combinedText);
 
-      const summary = summaryMatch ? summaryMatch[1].trim() : "Failed to extract summary section from AI response.";
-      const qa = qaMatch ? qaMatch[1].trim() : "Failed to extract Q&A section from AI response.";
-      const tasks = tasksMatch ? tasksMatch[1].trim() : "Failed to extract tasks section from AI response.";
+      chrome.storage.local.set({
+        meetSummary: parsed.summary,
+        meetQA: parsed.qa,
+        meetTasks: parsed.tasks
+      }, () => {
+        pollTranscript();
+      });
 
-      // Fallback if AI didn't use the tags properly
-      if (!summaryMatch && !qaMatch && !tasksMatch) {
-        console.warn("AI response did not contain parsing tags, saving full text to Summary.");
-        chrome.storage.local.set({
-          meetSummary: combinedText,
-          meetQA: "Please try again.",
-          meetTasks: "Please try again."
-        });
-      } else {
-        chrome.storage.local.set({
-          meetSummary: summary,
-          meetQA: qa,
-          meetTasks: tasks
-        });
-      }
-
-      // Force tab update
-      pollTranscript();
     } catch (error) {
       console.error("AI Generation Error:", error);
       alert(`Failed to generate AI summaries: ${error.message}`);
@@ -451,15 +516,55 @@ ${transcriptText}`;
 }
 
 // Unified API call selector for Meet Summaries
-async function callAIProvider(prompt, provider, apiKey, model, retries = 3, delay = 1000) {
+async function callAIProvider(prompt, provider, apiKey, model, localServerUrl = "http://localhost:8000", transcriptText = "", retries = 3, delay = 1000) {
   const maxChars = 32000;
   const truncatedPrompt = prompt.length > maxChars ? prompt.substring(0, maxChars) + "..." : prompt;
+  const maxAttempts = provider === "local" ? 1 : retries;
 
-  for (let i = 0; i < retries; i++) {
+  for (let i = 0; i < maxAttempts; i++) {
     try {
+      // Local AI (FastAPI bridge to Ollama Qwen3)
+      if (provider === "local") {
+        const url = (localServerUrl || "http://localhost:8000").replace(/\/+$/, "");
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes timeout for CPU
+
+        try {
+          const res = await fetch(`${url}/summarize`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              transcript: transcriptText,
+              prompt: truncatedPrompt,
+              model: model || undefined
+            }),
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!res.ok) {
+            let detail = `Server responded with HTTP ${res.status}`;
+            try {
+              const errData = await res.json();
+              detail = errData.detail || detail;
+            } catch (e) {}
+            throw new Error(`Local AI error: ${detail}`);
+          }
+
+          const data = await res.json();
+          return data.result || "No report generated.";
+        } catch (fetchErr) {
+          clearTimeout(timeoutId);
+          if (fetchErr.name === "AbortError") {
+            throw new Error("Local model inference timed out (3 minutes). Ensure Ollama is running and your machine has sufficient free RAM.");
+          }
+          throw fetchErr;
+        }
+      }
 
       // Gemini
-      if (provider === "gemini") {
+      else if (provider === "gemini") {
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
           {
@@ -493,7 +598,7 @@ async function callAIProvider(prompt, provider, apiKey, model, retries = 3, dela
             }
             if (fallbackModel) {
               console.warn(`${model} not found, falling back to ${fallbackModel}...`);
-              return await callAIProvider(prompt, provider, apiKey, fallbackModel, retries, delay);
+              return await callAIProvider(prompt, provider, apiKey, fallbackModel, localServerUrl, transcriptText, retries, delay);
             }
           }
           let errorMsg = errorData.error?.message || "Gemini API request failed";
@@ -599,7 +704,7 @@ async function callAIProvider(prompt, provider, apiKey, model, retries = 3, dela
         return resultText || "No report generated.";
       }
     } catch (error) {
-      if (i === retries - 1) throw error;
+      if (i === maxAttempts - 1) throw error;
       console.warn(`Attempt ${i + 1} failed: ${error.message}. Retrying in ${delay}ms...`);
       await new Promise((resolve) => setTimeout(resolve, delay));
       delay *= 2;
