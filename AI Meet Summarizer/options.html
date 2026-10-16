@@ -9,16 +9,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <style>
       :root {
-        --bg-color: #0b0f19;
-        --card-bg: rgba(22, 28, 45, 0.65);
-        --border-color: rgba(255, 255, 255, 0.08);
-        --text-primary: #f3f4f6;
-        --text-secondary: #9ca3af;
-        
-        --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-        --primary-glow: rgba(99, 102, 241, 0.35);
-        
-        --success: #10b981;
+        --bg-color: #0e0e10;
+        --card-bg: rgba(20, 20, 24, 0.92);
+        --border-color: rgba(255, 255, 255, 0.09);
+        --text-primary: #ffffff;
+        --text-secondary: #b3b3b3;
+
+        --netflix-red: #E50914;
+        --netflix-red-dark: #b81d24;
+        --primary-gradient: linear-gradient(135deg, #E50914 0%, #b81d24 100%);
+        --primary-glow: rgba(229, 9, 20, 0.4);
+
+        --success: #46d369;
+      }
+
+      *, *::before, *::after {
+        box-sizing: border-box;
       }
 
       body {
@@ -32,14 +38,14 @@
         overflow-x: hidden;
       }
 
-      /* Glow background decoration */
+      /* Netflix cinematic ambient spotlight */
       body::before {
         content: "";
         position: absolute;
-        width: 300px;
-        height: 300px;
-        background: radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, rgba(0,0,0,0) 75%);
-        top: -50px;
+        width: 380px;
+        height: 240px;
+        background: radial-gradient(ellipse at 50% 0%, rgba(229, 9, 20, 0.16) 0%, rgba(0,0,0,0) 75%);
+        top: -30px;
         left: 50%;
         transform: translateX(-50%);
         pointer-events: none;
@@ -51,22 +57,21 @@
         z-index: 1;
         background: var(--card-bg);
         border: 1px solid var(--border-color);
-        border-radius: 16px;
+        border-radius: 12px;
         padding: 24px;
-        backdrop-filter: blur(12px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(14px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
       }
 
       h1 {
-        font-size: 22px;
-        font-weight: 600;
+        font-size: 21px;
+        font-weight: 700;
         margin-bottom: 20px;
-        background: linear-gradient(to right, #ffffff, #d8b4fe);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #ffffff;
         display: flex;
         align-items: center;
         gap: 8px;
+        letter-spacing: -0.01em;
       }
 
       .description {
@@ -85,7 +90,7 @@
 
       label {
         font-size: 14px;
-        font-weight: 500;
+        font-weight: 600;
         color: var(--text-primary);
       }
 
@@ -93,23 +98,23 @@
         font-family: 'Outfit', sans-serif;
         width: 100%;
         padding: 10px 14px;
-        background: rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.35);
         border: 1px solid var(--border-color);
-        border-radius: 8px;
+        border-radius: 6px;
         color: var(--text-primary);
         font-size: 14px;
         transition: all 0.2s ease;
       }
 
       select option {
-        background-color: var(--bg-color);
+        background-color: #141417;
         color: var(--text-primary);
       }
 
       select:focus, input[type="text"]:focus {
         outline: none;
-        border-color: #a78bfa;
-        box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.15);
+        border-color: var(--netflix-red);
+        box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.25);
       }
 
       .help-link {
@@ -118,7 +123,7 @@
       }
 
       .help-link a {
-        color: #a78bfa;
+        color: #ff4d56;
         text-decoration: none;
         font-weight: 500;
       }
@@ -131,20 +136,21 @@
         font-family: 'Outfit', sans-serif;
         width: 100%;
         padding: 12px;
-        border-radius: 8px;
+        border-radius: 6px;
         border: none;
-        background: var(--primary-gradient);
+        background: var(--netflix-red);
         color: white;
         font-size: 14px;
-        font-weight: 600;
+        font-weight: 700;
         cursor: pointer;
         transition: all 0.2s ease;
-        box-shadow: 0 4px 12px var(--primary-glow);
+        box-shadow: 0 4px 14px var(--primary-glow);
+        letter-spacing: 0.01em;
       }
 
       button:hover {
-        filter: brightness(1.1);
-        box-shadow: 0 6px 16px var(--primary-glow);
+        background: var(--netflix-red-dark);
+        box-shadow: 0 6px 18px rgba(229, 9, 20, 0.55);
       }
 
       button:active {
@@ -155,7 +161,7 @@
         display: none;
         color: var(--success);
         font-size: 13px;
-        font-weight: 500;
+        font-weight: 600;
         margin-top: 12px;
         text-align: center;
         animation: fadeIn 0.3s ease;
@@ -266,13 +272,13 @@
             Ollama model name (e.g., <code>qwen3:1.7b</code>, <code>llama3.2</code>).
           </span>
         </div>
-        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 14px;">
-          <button type="button" id="test-local-btn" style="width: auto; padding: 8px 16px; font-size: 13px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); box-shadow: none;">
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px;">
+          <button type="button" id="test-local-btn" style="width: auto; padding: 8px 16px; font-size: 13px; font-weight: 600; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 6px; box-shadow: none;">
             🔍 Test Connection
           </button>
-          <span id="local-status-badge" style="font-size: 12px; color: var(--text-secondary);"></span>
+          <span id="local-status-badge" style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; word-break: break-word; flex: 1; min-width: 180px;"></span>
         </div>
-        <p style="font-size: 12px; color: #10b981; line-height: 1.4; background: rgba(16, 185, 129, 0.08); padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
+        <p style="font-size: 12px; color: var(--success); line-height: 1.4; background: rgba(70, 211, 105, 0.08); padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(70, 211, 105, 0.25);">
           🔒 <strong>100% Private & Free:</strong> No external API key required. Transcript stays completely on your computer and is processed by Ollama offline.
         </p>
       </div>
